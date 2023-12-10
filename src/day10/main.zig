@@ -185,19 +185,19 @@ pub fn do_puzzle(allocator: std.mem.Allocator) !struct { p1: IntT, p2: IntT } {
         }
         v2d_maps[buffer_map_i].clearAndFree(allocator);
     }
-    for (0..input_file.len) |i| {
-        if (input_file[i] == '\n') std.debug.print("\n", .{});
-        if (PipeArray[i]) |p| {
-            if (p.visited_steps == 1) {
-                std.debug.print(" ", .{});
-            } else {
-                std.debug.print("{c}", .{input_file[i]});
-            }
-        } else {
-            std.debug.print(" ", .{});
-        }
-    }
-    std.debug.print("\n", .{});
+    //for (0..input_file.len) |i| {
+    //    if (input_file[i] == '\n') std.debug.print("\n", .{});
+    //    if (PipeArray[i]) |p| {
+    //        if (p.visited_steps == 1) {
+    //            std.debug.print(" ", .{});
+    //        } else {
+    //            std.debug.print("{c}", .{input_file[i]});
+    //        }
+    //    } else {
+    //        std.debug.print(" ", .{});
+    //    }
+    //}
+    //std.debug.print("\n", .{});
     var z_count: IntT = 0;
     for (PipeArray) |p_exists| {
         if (p_exists) |p| {
