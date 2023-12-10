@@ -77,11 +77,6 @@ pub fn do_puzzle(file_str: []const u8, allocator: std.mem.Allocator) !struct { p
     defer allocator.free(num_strs_concat[1]);
     return .{ .p1 = win_num_p1, .p2 = try binary_search_number_of_wins(num_strs_concat) };
 }
-pub fn get_file_str(sub_path: []const u8, allocate_bytes: []const u8, allocator: std.mem.Allocator) ![]u8 {
-    const file_h = try std.fs.cwd().openFile(sub_path, .{});
-    defer file_h.close();
-    return file_h.readToEndAlloc(allocator, try std.fmt.parseIntSizeSuffix(allocate_bytes, 10));
-}
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer if (gpa.deinit() == .leak) std.debug.print("Leak detected.\n", .{});

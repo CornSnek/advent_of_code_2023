@@ -10,11 +10,6 @@ pub fn main() !void {
     //try std.testing.expectEqual(@as(IntT, 16043), p.p1);
     //try std.testing.expectEqual(@as(IntT, 15726453850399), p.p2);
 }
-pub fn get_file_str(sub_path: []const u8, allocate_bytes: []const u8, allocator: std.mem.Allocator) ![]u8 {
-    const file_h = try std.fs.cwd().openFile(sub_path, .{});
-    defer file_h.close();
-    return file_h.readToEndAlloc(allocator, try std.fmt.parseIntSizeSuffix(allocate_bytes, 10));
-}
 pub fn parse_line(file_str: []const u8, pos: *usize) ?[]const u8 {
     if (pos.* == file_str.len) return null;
     const begin_pos = pos.*;
@@ -136,42 +131,4 @@ pub fn factorize(factor: IntT, allocator: std.mem.Allocator) ![]Factors {
         factors[factors.len - 1] = .{ .prime = factors_left };
     }
     return factors;
-}
-test "parts 1/2" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer if (gpa.deinit() == .leak) std.debug.print("Memory leak\n", .{});
-    const file_str = try get_file_str("input.txt", "30Ki", gpa.allocator());
-    defer gpa.allocator().free(file_str);
-    const Loops = 1000;
-    var time: [Loops]i128 = undefined;
-    for (0..Loops) |i| {
-        const p = try TimeF(.auto, "do_puzzle", do_puzzle, .{ file_str, gpa.allocator() }, &time[i]);
-        try std.testing.expectEqual(@as(IntT, 250232501), p.p1);
-        try std.testing.expectEqual(@as(IntT, 249138943), p.p2);
-    }
-    var time_sum: i128 = 0;
-    for (0..Loops) |i| {
-        time_sum += time[i];
-        std.debug.print("Iteration #{}, Time: {} ns\n", .{ i, time[i] });
-    }
-    std.debug.print("Average Time: {} ns\n", .{@divFloor(time_sum, Loops)});
-}
-///Decorator function that counts the execution time.
-pub fn TimeF(
-    comptime CallMod: std.builtin.CallModifier,
-    comptime FnName: []const u8,
-    comptime AnyFn: anytype,
-    AnyFnArgs: anytype,
-    time_output: ?*i128,
-) @TypeOf(@call(CallMod, AnyFn, AnyFnArgs)) {
-    const begin_nts = std.time.nanoTimestamp();
-    defer {
-        const end_nts = std.time.nanoTimestamp();
-        if (time_output) |to| {
-            to.* = end_nts - begin_nts;
-        } else {
-            std.debug.print("{d} ns after calling the function {s} \n ", .{ @as(f64, @floatFromInt(end_nts - begin_nts)), FnName });
-        }
-    }
-    return @call(CallMod, AnyFn, AnyFnArgs);
 }

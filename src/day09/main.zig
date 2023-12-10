@@ -8,11 +8,6 @@ pub fn main() !void {
     const p = try do_puzzle(input_file, gpa.allocator());
     std.debug.print("{}\n", .{p});
 }
-pub fn get_file_str(sub_path: []const u8, allocate_bytes: []const u8, allocator: std.mem.Allocator) ![]u8 {
-    const file_h = try std.fs.cwd().openFile(sub_path, .{});
-    defer file_h.close();
-    return file_h.readToEndAlloc(allocator, try std.fmt.parseIntSizeSuffix(allocate_bytes, 10));
-}
 pub fn parse_line(file_str: []const u8, pos: *usize) ?[]const u8 {
     if (pos.* == file_str.len) return null;
     const begin_pos = pos.*;
