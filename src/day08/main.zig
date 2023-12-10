@@ -1,4 +1,4 @@
-//! https://adventofcode.com/2023/day/7
+//! https://adventofcode.com/2023/day/8
 const std = @import("std");
 const IntT = u64;
 pub fn main() !void {
