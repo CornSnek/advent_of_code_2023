@@ -14,6 +14,7 @@ pub fn main_day_not_implemented() !void {
 /// Hardcode main.zig for each day here.
 pub const DayMains: [25]*const fn () anyerror!void = v: {
     var arr = [1]*const fn () anyerror!void{main_day_not_implemented} ** 25;
+    arr[7 - 1] = @import("./day07/main.zig").main;
     arr[8 - 1] = @import("./day08/main.zig").main;
     arr[9 - 1] = @import("./day09/main.zig").main;
     arr[10 - 1] = @import("./day10/main.zig").main;
