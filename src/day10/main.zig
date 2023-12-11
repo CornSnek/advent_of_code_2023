@@ -331,5 +331,5 @@ test "minimal_example" {
     ;
     const puzzle2 = try do_puzzle(std.testing.allocator);
     try std.testing.expectEqual(@as(IntT, 8), puzzle2.p1);
-    std.debug.print("{} {}\n", .{ puzzle1.p1, puzzle2.p2 });
+    //std.debug.print("{} {}\n", .{ puzzle1.p1, puzzle2.p2 });
 }

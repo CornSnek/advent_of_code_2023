@@ -51,6 +51,7 @@ pub fn main() !void {
     try DayMains[day - 1]();
 }
 test {
-    _ = @import("./day10/main.zig");
     _ = @import("./day05/main.zig");
+    _ = @import("./day10/main.zig");
+    _ = @import("./day11/main.zig");
 }
