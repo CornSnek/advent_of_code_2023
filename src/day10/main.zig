@@ -148,18 +148,13 @@ pub fn do_puzzle(allocator: std.mem.Allocator) !struct { p1: IntT, p2: IntT } {
     slider2x2_cpy.slide(PipeArray);
     while (!slider2x2_cpy.eql(slider2x2)) {
         slider2x2_cpy.slide(PipeArray); //Slider2x2 slides clockwise outside the loop while it marks any outside pipes.
-        inline for ([_]struct { c: Slider2x2.Corner, dv: struct { x: isize, y: isize } }{
-            .{ .c = .tl, .dv = .{ .x = 0, .y = 0 } },
-            .{ .c = .tr, .dv = .{ .x = 1, .y = 0 } },
-            .{ .c = .br, .dv = .{ .x = 1, .y = 1 } },
-            .{ .c = .bl, .dv = .{ .x = 0, .y = 1 } },
-        }) |s| {
-            const p_exists = slider2x2_cpy.get_pipe(PipeArray, s.c);
-            if (p_exists) |p| {
-                if (p.visited_steps == 0) {
-                    const vec = Vec2D{ .x = @intCast(slider2x2_cpy.x + s.dv.x), .y = @intCast(slider2x2_cpy.y + s.dv.y) };
-                    try v2d_maps[buffer_map_i].put(allocator, vec, {});
-                }
+        const opp_c = Slider2x2.opposite_corner(slider2x2_cpy.c);
+        const opp_offset = Slider2x2.CornerOffset[@intFromEnum(opp_c)];
+        const p_exists = slider2x2_cpy.get_pipe(PipeArray, opp_c);
+        if (p_exists) |p| {
+            if (p.visited_steps == 0) {
+                const vec = Vec2D{ .x = @intCast(slider2x2_cpy.x + opp_offset.dx), .y = @intCast(slider2x2_cpy.y + opp_offset.dy) };
+                try v2d_maps[buffer_map_i].put(allocator, vec, {});
             }
         }
     }
@@ -208,6 +203,15 @@ pub fn do_puzzle(allocator: std.mem.Allocator) !struct { p1: IntT, p2: IntT } {
 }
 pub const Slider2x2 = struct {
     pub const Corner = enum { tl, tr, br, bl };
+    pub fn opposite_corner(c: Corner) Corner {
+        return switch (c) {
+            .tl => .br,
+            .tr => .bl,
+            .br => .tl,
+            .bl => .tr,
+        };
+    }
+    pub const CornerOffset = [4]struct { dx: isize, dy: isize }{ .{ .dx = 0, .dy = 0 }, .{ .dx = 1, .dy = 0 }, .{ .dx = 1, .dy = 1 }, .{ .dx = 0, .dy = 1 } };
     x: isize,
     y: isize,
     tw: usize,
@@ -248,51 +252,61 @@ pub const Slider2x2 = struct {
         return null;
     }
     pub fn slide(self: *Slider2x2, PipeArray: []const ?Pipe) void {
-        switch (self.c) {
-            .tl => {
-                const p = self.get_pipe(PipeArray, .tl).?;
-                if (p.direction_exists(Pipe.DirW)) {
-                    self.x -= 1;
-                } else if (p.direction_exists(Pipe.DirN)) {
-                    self.x -= 1;
-                    self.c = .tr;
-                } else if (p.direction_exists(Pipe.DirS)) {
-                    self.c = .bl;
-                }
-            },
-            .tr => {
-                const p = self.get_pipe(PipeArray, .tr).?;
-                if (p.direction_exists(Pipe.DirN)) {
-                    self.y -= 1;
-                } else if (p.direction_exists(Pipe.DirE)) {
-                    self.y -= 1;
-                    self.c = .br;
-                } else if (p.direction_exists(Pipe.DirW)) {
-                    self.c = .tl;
-                }
-            },
-            .br => {
-                const p = self.get_pipe(PipeArray, .br).?;
-                if (p.direction_exists(Pipe.DirE)) {
-                    self.x += 1;
-                } else if (p.direction_exists(Pipe.DirS)) {
-                    self.x += 1;
-                    self.c = .bl;
-                } else if (p.direction_exists(Pipe.DirN)) {
-                    self.c = .tr;
-                }
-            },
-            .bl => {
-                const p = self.get_pipe(PipeArray, .bl).?;
-                if (p.direction_exists(Pipe.DirS)) {
-                    self.y += 1;
-                } else if (p.direction_exists(Pipe.DirW)) {
-                    self.y += 1;
-                    self.c = .tl;
-                } else if (p.direction_exists(Pipe.DirE)) {
-                    self.c = .br;
-                }
-            },
+        while (true) { //Slide at least once.
+            switch (self.c) {
+                .tl => {
+                    const p = self.get_pipe(PipeArray, .tl).?;
+                    if (p.direction_exists(Pipe.DirW)) {
+                        self.x -= 1;
+                        break;
+                    } else if (p.direction_exists(Pipe.DirN)) {
+                        self.x -= 1;
+                        self.c = .tr;
+                        break;
+                    } else if (p.direction_exists(Pipe.DirS)) {
+                        self.c = .bl;
+                    }
+                },
+                .tr => {
+                    const p = self.get_pipe(PipeArray, .tr).?;
+                    if (p.direction_exists(Pipe.DirN)) {
+                        self.y -= 1;
+                        break;
+                    } else if (p.direction_exists(Pipe.DirE)) {
+                        self.y -= 1;
+                        self.c = .br;
+                        break;
+                    } else if (p.direction_exists(Pipe.DirW)) {
+                        self.c = .tl;
+                    }
+                },
+                .br => {
+                    const p = self.get_pipe(PipeArray, .br).?;
+                    if (p.direction_exists(Pipe.DirE)) {
+                        self.x += 1;
+                        break;
+                    } else if (p.direction_exists(Pipe.DirS)) {
+                        self.x += 1;
+                        self.c = .bl;
+                        break;
+                    } else if (p.direction_exists(Pipe.DirN)) {
+                        self.c = .tr;
+                    }
+                },
+                .bl => {
+                    const p = self.get_pipe(PipeArray, .bl).?;
+                    if (p.direction_exists(Pipe.DirS)) {
+                        self.y += 1;
+                        break;
+                    } else if (p.direction_exists(Pipe.DirW)) {
+                        self.y += 1;
+                        self.c = .tl;
+                        break;
+                    } else if (p.direction_exists(Pipe.DirE)) {
+                        self.c = .br;
+                    }
+                },
+            }
         }
     }
 };
