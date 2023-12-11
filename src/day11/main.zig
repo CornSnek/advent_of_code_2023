@@ -32,9 +32,6 @@ inline fn get_elem(comptime bounds_check: bool, comptime ArrayT: anytype, array_
     if (bounds_check) if (vec.x < 0 or vec.y < 0 or vec.x >= @as(isize, @intCast(TextWidth - 1)) or vec.y >= @as(isize, @intCast(TextHeight))) return null;
     return array_t[TextWidth * @as(usize, @intCast(vec.y)) + @as(usize, @intCast(vec.x))];
 }
-inline fn set_elem(comptime ArrayT: anytype, array_t: ArrayT, value: std.meta.Child(ArrayT), TextWidth: usize, vec: Vec2D) void {
-    array_t[TextWidth * @as(usize, @intCast(vec.y)) + @as(usize, @intCast(vec.x))] = value;
-}
 pub const Vec2DMap = std.AutoArrayHashMapUnmanaged(Vec2D, void);
 pub fn do_puzzle(comptime expansion_p2: IntT, allocator: std.mem.Allocator) !struct { p1: IntT, p2: IntT } {
     var pos: usize = 0;
@@ -74,80 +71,57 @@ pub fn do_puzzle(comptime expansion_p2: IntT, allocator: std.mem.Allocator) !str
             empty_columns_at[empty_columns_at.len - 1] = x;
         }
     }
-    var visited_arr = try allocator.alloc(bool, TextWidth.? * TextHeight);
-    defer allocator.free(visited_arr);
     var steps_p1: IntT = 0;
     var steps_p2: IntT = 0;
     for (0..stars.len) |i| {
         for (i..stars.len) |@"i2"| {
             if (i == @"i2") continue;
-            var check_vec: ?Vec2D = stars[i];
-            @memset(visited_arr, false); //Clear visited array for next stars.
-            while (check_vec) |vec| {
-                check_vec = null;
-                if (get_elem(false, @TypeOf(visited_arr), visited_arr, TextWidth.?, TextHeight, vec)) continue;
-                set_elem(@TypeOf(visited_arr), visited_arr, true, TextWidth.?, vec);
-                {
-                    const vec_left = Vec2D{ .x = vec.x - 1, .y = vec.y };
-                    if (get_elem(true, @TypeOf(visited_arr), visited_arr, TextWidth.?, TextHeight, vec_left)) |visited| skip: {
-                        if (visited) break :skip;
-                        if (try vec_left.manhattan(stars[@"i2"]) >= try vec.manhattan(stars[@"i2"])) break :skip;
-                        const x_in_empty = for (empty_columns_at) |er| {
-                            if (vec.x - 1 == er) break true;
-                        } else false;
-                        steps_p1 += if (x_in_empty) 2 else 1;
-                        steps_p2 += if (x_in_empty) expansion_p2 else 1;
-                        if (vec_left.eql(stars[@"i2"])) break;
-                        check_vec = vec_left;
-                        continue;
-                    }
+            var vec: Vec2D = stars[i];
+            while (true) {
+                const vec_left = Vec2D{ .x = vec.x - 1, .y = vec.y };
+                if (try vec_left.manhattan(stars[@"i2"]) < try vec.manhattan(stars[@"i2"])) {
+                    const x_in_empty = for (empty_columns_at) |er| {
+                        if (vec.x - 1 == er) break true;
+                    } else false;
+                    steps_p1 += if (x_in_empty) 2 else 1;
+                    steps_p2 += if (x_in_empty) expansion_p2 else 1;
+                    if (vec_left.eql(stars[@"i2"])) break;
+                    vec = vec_left;
+                    continue;
                 }
-                {
-                    const vec_right = Vec2D{ .x = vec.x + 1, .y = vec.y };
-                    if (get_elem(true, @TypeOf(visited_arr), visited_arr, TextWidth.?, TextHeight, vec_right)) |visited| skip: {
-                        if (visited) break :skip;
-                        if (try vec_right.manhattan(stars[@"i2"]) >= try vec.manhattan(stars[@"i2"])) break :skip;
-                        const x_in_empty = for (empty_columns_at) |er| {
-                            if (vec.x + 1 == er) break true;
-                        } else false;
-                        steps_p1 += if (x_in_empty) 2 else 1;
-                        steps_p2 += if (x_in_empty) expansion_p2 else 1;
-                        if (vec_right.eql(stars[@"i2"])) break;
-                        check_vec = vec_right;
-                        continue;
-                    }
+                const vec_right = Vec2D{ .x = vec.x + 1, .y = vec.y };
+                if (try vec_right.manhattan(stars[@"i2"]) < try vec.manhattan(stars[@"i2"])) {
+                    const x_in_empty = for (empty_columns_at) |er| {
+                        if (vec.x + 1 == er) break true;
+                    } else false;
+                    steps_p1 += if (x_in_empty) 2 else 1;
+                    steps_p2 += if (x_in_empty) expansion_p2 else 1;
+                    if (vec_right.eql(stars[@"i2"])) break;
+                    vec = vec_right;
+                    continue;
                 }
-                {
-                    const vec_up = Vec2D{ .x = vec.x, .y = vec.y - 1 };
-                    if (get_elem(true, @TypeOf(visited_arr), visited_arr, TextWidth.?, TextHeight, vec_up)) |visited| skip: {
-                        if (visited) break :skip;
-                        if (try vec_up.manhattan(stars[@"i2"]) >= try vec.manhattan(stars[@"i2"])) break :skip;
-                        const y_in_empty = for (empty_rows_at) |er| {
-                            if (vec.y - 1 == er) break true;
-                        } else false;
-                        steps_p1 += if (y_in_empty) 2 else 1;
-                        steps_p2 += if (y_in_empty) expansion_p2 else 1;
-                        if (vec_up.eql(stars[@"i2"])) break;
-                        check_vec = vec_up;
-                        continue;
-                    }
+                const vec_up = Vec2D{ .x = vec.x, .y = vec.y - 1 };
+                if (try vec_up.manhattan(stars[@"i2"]) < try vec.manhattan(stars[@"i2"])) {
+                    const y_in_empty = for (empty_rows_at) |er| {
+                        if (vec.y - 1 == er) break true;
+                    } else false;
+                    steps_p1 += if (y_in_empty) 2 else 1;
+                    steps_p2 += if (y_in_empty) expansion_p2 else 1;
+                    if (vec_up.eql(stars[@"i2"])) break;
+                    vec = vec_up;
+                    continue;
                 }
-                {
-                    const vec_down = Vec2D{ .x = vec.x, .y = vec.y + 1 };
-                    if (get_elem(true, @TypeOf(visited_arr), visited_arr, TextWidth.?, TextHeight, vec_down)) |visited| skip: {
-                        if (visited) break :skip;
-                        if (try vec_down.manhattan(stars[@"i2"]) >= try vec.manhattan(stars[@"i2"])) break :skip;
-                        const y_in_empty = for (empty_rows_at) |er| {
-                            if (vec.y + 1 == er) break true;
-                        } else false;
-                        steps_p1 += if (y_in_empty) 2 else 1;
-                        steps_p2 += if (y_in_empty) expansion_p2 else 1;
-                        if (vec_down.eql(stars[@"i2"])) break;
-                        check_vec = vec_down;
-                        continue;
-                    }
+                const vec_down = Vec2D{ .x = vec.x, .y = vec.y + 1 };
+                if (try vec_down.manhattan(stars[@"i2"]) < try vec.manhattan(stars[@"i2"])) {
+                    const y_in_empty = for (empty_rows_at) |er| {
+                        if (vec.y + 1 == er) break true;
+                    } else false;
+                    steps_p1 += if (y_in_empty) 2 else 1;
+                    steps_p2 += if (y_in_empty) expansion_p2 else 1;
+                    if (vec_down.eql(stars[@"i2"])) break;
+                    vec = vec_down;
+                    continue;
                 }
-                unreachable;
             }
         }
     }
