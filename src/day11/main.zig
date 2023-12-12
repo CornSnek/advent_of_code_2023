@@ -32,7 +32,6 @@ inline fn get_elem(comptime bounds_check: bool, comptime ArrayT: anytype, array_
     if (bounds_check) if (vec.x < 0 or vec.y < 0 or vec.x >= @as(isize, @intCast(TextWidth - 1)) or vec.y >= @as(isize, @intCast(TextHeight))) return null;
     return array_t[TextWidth * @as(usize, @intCast(vec.y)) + @as(usize, @intCast(vec.x))];
 }
-pub const Vec2DMap = std.AutoArrayHashMapUnmanaged(Vec2D, void);
 pub fn do_puzzle(comptime expansion_p2: IntT, allocator: std.mem.Allocator) !struct { p1: IntT, p2: IntT } {
     var pos: usize = 0;
     var TextWidth: ?usize = null; //This also includes '\n'
@@ -76,51 +75,25 @@ pub fn do_puzzle(comptime expansion_p2: IntT, allocator: std.mem.Allocator) !str
     for (0..stars.len) |i| {
         for (i..stars.len) |@"i2"| {
             if (i == @"i2") continue;
-            var vec: Vec2D = stars[i];
-            while (true) {
-                const vec_left = Vec2D{ .x = vec.x - 1, .y = vec.y };
-                if (try vec_left.manhattan(stars[@"i2"]) < try vec.manhattan(stars[@"i2"])) {
-                    const x_in_empty = for (empty_columns_at) |er| {
-                        if (vec.x - 1 == er) break true;
-                    } else false;
-                    steps_p1 += if (x_in_empty) 2 else 1;
-                    steps_p2 += if (x_in_empty) expansion_p2 else 1;
-                    if (vec_left.eql(stars[@"i2"])) break;
-                    vec = vec_left;
-                    continue;
-                }
-                const vec_right = Vec2D{ .x = vec.x + 1, .y = vec.y };
-                if (try vec_right.manhattan(stars[@"i2"]) < try vec.manhattan(stars[@"i2"])) {
-                    const x_in_empty = for (empty_columns_at) |er| {
-                        if (vec.x + 1 == er) break true;
-                    } else false;
-                    steps_p1 += if (x_in_empty) 2 else 1;
-                    steps_p2 += if (x_in_empty) expansion_p2 else 1;
-                    if (vec_right.eql(stars[@"i2"])) break;
-                    vec = vec_right;
-                    continue;
-                }
-                const vec_up = Vec2D{ .x = vec.x, .y = vec.y - 1 };
-                if (try vec_up.manhattan(stars[@"i2"]) < try vec.manhattan(stars[@"i2"])) {
-                    const y_in_empty = for (empty_rows_at) |er| {
-                        if (vec.y - 1 == er) break true;
-                    } else false;
-                    steps_p1 += if (y_in_empty) 2 else 1;
-                    steps_p2 += if (y_in_empty) expansion_p2 else 1;
-                    if (vec_up.eql(stars[@"i2"])) break;
-                    vec = vec_up;
-                    continue;
-                }
-                const vec_down = Vec2D{ .x = vec.x, .y = vec.y + 1 };
-                if (try vec_down.manhattan(stars[@"i2"]) < try vec.manhattan(stars[@"i2"])) {
-                    const y_in_empty = for (empty_rows_at) |er| {
-                        if (vec.y + 1 == er) break true;
-                    } else false;
-                    steps_p1 += if (y_in_empty) 2 else 1;
-                    steps_p2 += if (y_in_empty) expansion_p2 else 1;
-                    if (vec_down.eql(stars[@"i2"])) break;
-                    vec = vec_down;
-                    continue;
+            var current_vec: Vec2D = stars[i];
+            const destination_vec = stars[@"i2"];
+            loop: while (true) {
+                inline for ([_]struct { v: Vec2D, c: enum { x, y } }{
+                    .{ .v = Vec2D{ .x = current_vec.x + 1, .y = current_vec.y }, .c = comptime .x }, //Right
+                    .{ .v = Vec2D{ .x = current_vec.x - 1, .y = current_vec.y }, .c = comptime .x }, //Left
+                    .{ .v = Vec2D{ .x = current_vec.x, .y = current_vec.y + 1 }, .c = comptime .y }, //Down
+                    .{ .v = Vec2D{ .x = current_vec.x, .y = current_vec.y - 1 }, .c = comptime .y }, //Up
+                }) |s| {
+                    if (try s.v.manhattan(destination_vec) < try current_vec.manhattan(destination_vec)) {
+                        const xy_in_empty_space = for (if (s.c == .x) empty_columns_at else empty_rows_at) |e| {
+                            if ((if (s.c == .x) s.v.x else s.v.y) == e) break true;
+                        } else false; //Check if going near an x's or y's s.v (Vec2D) has an empty row/column.
+                        steps_p1 += if (xy_in_empty_space) 2 else 1;
+                        steps_p2 += if (xy_in_empty_space) expansion_p2 else 1;
+                        if (s.v.eql(destination_vec)) break :loop;
+                        current_vec = s.v;
+                        continue :loop;
+                    }
                 }
             }
         }
