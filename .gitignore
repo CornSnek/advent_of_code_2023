@@ -3,3 +3,5 @@ zig-cache/
 inputs/
 .vscode/
 utils/
+day12_cache/
+day12_logger.txt
