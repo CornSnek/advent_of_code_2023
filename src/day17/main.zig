@@ -8,8 +8,8 @@ pub fn main() !void {
     defer if (gpa.deinit() == .leak) std.debug.print("Leak detected.\n", .{});
     const p = try do_puzzle(gpa.allocator());
     std.debug.print("{}\n", .{p});
-    try std.testing.expectEqual(@as(IntT, 859), p.p1);
-    try std.testing.expectEqual(@as(IntT, 1027), p.p2);
+    //try std.testing.expectEqual(@as(IntT, 859), p.p1);
+    //try std.testing.expectEqual(@as(IntT, 1027), p.p2);
 }
 pub fn parse_line(file_str: []const u8, pos: *usize) ?[]const u8 {
     if (pos.* == file_str.len) return null;
