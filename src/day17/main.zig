@@ -108,7 +108,7 @@ pub fn calculate(tiles_pq: *TilesPQueue, tiles_visited: *TilesVisit, TextWidth: 
             .{ .dv = .{ .x = 1, .y = 0 }, .dir = .right },
         }) |nt| next_tile_dir: { //The `next_tile_dir: {` label makes the `break` go to the next struct in the for loop instead of breaking outside the for loop.
             if (tilevp.dir == nt.dir.inv()) break :next_tile_dir;
-            if (tilevp.dir != .none and tilevp.dir_step < min_repeat) if (tilevp.dir != nt.dir) break :next_tile_dir;
+            if (tilevp.dir != .none and tilevp.dir_step < min_repeat and tilevp.dir != nt.dir) break :next_tile_dir;
             const new_dir_step: IntT = if (tilevp.dir == nt.dir) tilevp.dir_step + 1 else 1;
             if (new_dir_step > max_repeat) break :next_tile_dir;
             const next_vector = Vec2D{ .x = tilevp.vec.x + nt.dv.x, .y = tilevp.vec.y + nt.dv.y };

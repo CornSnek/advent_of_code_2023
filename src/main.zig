@@ -27,6 +27,7 @@ pub const DayMains: [25]*const fn () anyerror!void = v: {
     arr[11 - 1] = @import("./day11/main.zig").main;
     arr[12 - 1] = @import("./day12/main.zig").main;
     arr[17 - 1] = @import("./day17/main.zig").main;
+    arr[18 - 1] = @import("./day18/main.zig").main;
     break :v arr;
 };
 pub var input_file: []const u8 = undefined;
