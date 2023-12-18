@@ -1,6 +1,6 @@
 //! https://adventofcode.com/2023/day/13
 const std = @import("std");
-const IntT = u64;
+const IntT = u32;
 var input_file: []const u8 = undefined;
 pub fn main() !void {
     input_file = @import("root").input_file;
@@ -32,13 +32,7 @@ pub fn parse_map(file_str: []const u8, pos: *usize) ?Map {
     pos.* += 1;
     return .{ .map = file_str[begin_pos..pos.*], .width = TextWidth.?, .height = TextHeight };
 }
-pub const Vec2D = struct {
-    x: isize,
-    y: isize,
-    pub inline fn eql(self: Vec2D, other: Vec2D) bool {
-        return self.x == other.x and self.y == other.y;
-    }
-};
+pub const Vec2D = struct { x: isize, y: isize };
 inline fn get_elem(comptime bounds_check: bool, comptime ArrayT: anytype, array_t: ArrayT, TextWidth: usize, TextHeight: usize, vec: Vec2D) if (bounds_check) ?std.meta.Child(ArrayT) else std.meta.Child(ArrayT) {
     if (bounds_check) if (vec.x < 0 or vec.y < 0 or vec.x >= @as(isize, @intCast(TextWidth - 1)) or vec.y >= @as(isize, @intCast(TextHeight))) return null;
     return array_t[TextWidth * @as(usize, @intCast(vec.y)) + @as(usize, @intCast(vec.x))];
@@ -57,7 +51,7 @@ pub fn do_puzzle() struct { p1: IntT, p2: IntT } {
 }
 pub const PuzzlePart = enum { part1, part2 };
 pub const ReflectionType = enum { row, column };
-pub fn calculate(comptime pp: PuzzlePart, comptime rt: ReflectionType, map: Map) ?usize {
+pub fn calculate(comptime pp: PuzzlePart, comptime rt: ReflectionType, map: Map) ?IntT {
     if (rt == .column) {
         next_col: for (0..map.width - 2) |col| {
             var col1: isize = @intCast(col);
@@ -70,11 +64,11 @@ pub fn calculate(comptime pp: PuzzlePart, comptime rt: ReflectionType, map: Map)
                 var check_row: isize = 0;
                 while (check_row < map.height) : (check_row += 1) {
                     var ch1 = get_elem(true, @TypeOf(map.map), map.map, @intCast(map.width), @intCast(map.height), .{ .x = col1, .y = check_row }) orelse {
-                        if (pp == .part1 or exactly_one_mistake) return col + 1;
+                        if (pp == .part1 or exactly_one_mistake) return @intCast(col + 1);
                         continue :next_col;
                     };
                     var ch2 = get_elem(true, @TypeOf(map.map), map.map, @intCast(map.width), @intCast(map.height), .{ .x = col2, .y = check_row }) orelse {
-                        if (pp == .part1 or exactly_one_mistake) return col + 1;
+                        if (pp == .part1 or exactly_one_mistake) return @intCast(col + 1);
                         continue :next_col;
                     };
                     if (ch1 != ch2) {
@@ -96,11 +90,11 @@ pub fn calculate(comptime pp: PuzzlePart, comptime rt: ReflectionType, map: Map)
                 var check_col: isize = 0;
                 while (check_col < map.width - 1) : (check_col += 1) {
                     var ch1 = get_elem(true, @TypeOf(map.map), map.map, @intCast(map.width), @intCast(map.height), .{ .x = check_col, .y = row1 }) orelse {
-                        if (pp == .part1 or exactly_one_mistake) return row + 1;
+                        if (pp == .part1 or exactly_one_mistake) return @intCast(row + 1);
                         continue :next_row;
                     };
                     var ch2 = get_elem(true, @TypeOf(map.map), map.map, @intCast(map.width), @intCast(map.height), .{ .x = check_col, .y = row2 }) orelse {
-                        if (pp == .part1 or exactly_one_mistake) return row + 1;
+                        if (pp == .part1 or exactly_one_mistake) return @intCast(row + 1);
                         continue :next_row;
                     };
                     if (ch1 != ch2) {
