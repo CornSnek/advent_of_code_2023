@@ -39,9 +39,11 @@ pub const Memoizer = struct {
     }, 66);
     map: MapHashMap,
     pub fn init(allocator: std.mem.Allocator) !Memoizer {
-        return .{
+        var self = Memoizer{
             .map = MapHashMap.init(allocator),
         };
+        try self.map.ensureTotalCapacity(200000);
+        return self;
     }
     pub fn memoize_add(self: *Memoizer, str: []const u8, spr: []const IntT, ans: IntT) !void {
         const allocator = self.map.allocator;
@@ -67,6 +69,7 @@ pub const Memoizer = struct {
     }
     pub fn solution(self: *Memoizer, str: []const u8, spr: []const IntT) !IntT {
         if (self.memoize_get(str, spr)) |ans| return ans;
+        if (str.len == 0) return @intFromBool(spr.len == 0);
         if (spr.len == 0) {
             return for (str) |ch| {
                 if (ch == '#') break 0;
@@ -74,8 +77,6 @@ pub const Memoizer = struct {
         }
         var sum: usize = spr.len - 1; //spr.len - 1 is the minimum holes required between springs.
         for (spr) |s| sum += s;
-        if (sum > str.len + 1) //Skip if sum of springs+holes > string length.
-            return 0;
         var fits: IntT = 0;
         next_slide: for (0..str.len + 1 - sum) |s| {
             for (str[0..s]) |ch| if (ch == '#') continue :next_slide;
