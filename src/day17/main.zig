@@ -112,9 +112,8 @@ pub fn calculate(tiles_pq: *TilesPQueue, tiles_visited: *TilesVisit, TextWidth: 
             const new_dir_step: IntT = if (tilevp.dir == nt.dir) tilevp.dir_step + 1 else 1;
             if (new_dir_step > max_repeat) break :next_tile_dir;
             const next_vector = Vec2D{ .x = tilevp.vec.x + nt.dv.x, .y = tilevp.vec.y + nt.dv.y };
-            const ch = get_elem(true, @TypeOf(input_file), input_file, TextWidth, TextHeight, next_vector);
-            if (ch == null) break :next_tile_dir;
-            const tile_cost: IntT = @intCast(ch.? - '0');
+            const ch = get_elem(true, @TypeOf(input_file), input_file, TextWidth, TextHeight, next_vector) orelse break :next_tile_dir;
+            const tile_cost: IntT = @intCast(ch - '0');
             const new_tile_properties = TileQueueProperties{ .total_cost = tile_from_pq.total_cost + tile_cost, .tvp = .{ .dir_step = new_dir_step, .dir = nt.dir, .vec = next_vector } };
             try tiles_pq.add(new_tile_properties);
         }
