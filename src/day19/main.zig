@@ -75,22 +75,22 @@ pub fn do_puzzle(allocator: std.mem.Allocator) !struct { p1: IntT, p2: IntT } {
         const range_p1 = [4]RatingRange{ .{ .min = xv, .max = xv }, .{ .min = mv, .max = mv }, .{ .min = av, .max = av }, .{ .min = sv, .max = sv } };
         const wf_result_p1 = try parse_workflow(allocator, workflow_map, range_p1);
         defer allocator.free(wf_result_p1);
-        if (wf_result_p1.len != 0) p1 += wf_result_p1[0].rr[0].min + wf_result_p1[0].rr[1].min + wf_result_p1[0].rr[2].min + wf_result_p1[0].rr[3].min;
+        if (wf_result_p1.len != 0) p1 += wf_result_p1[0][0].min + wf_result_p1[0][1].min + wf_result_p1[0][2].min + wf_result_p1[0][3].min;
     }
     const wf_result = try parse_workflow(allocator, workflow_map, .{ .{ .min = 1, .max = 4000 }, .{ .min = 1, .max = 4000 }, .{ .min = 1, .max = 4000 }, .{ .min = 1, .max = 4000 } });
     defer allocator.free(wf_result);
     for (wf_result) |rrs| {
         var mult: IntT = 1;
-        for (rrs.rr) |range| mult *= range.max - range.min + 1;
+        for (rrs) |range| mult *= range.max - range.min + 1;
         p2 += mult;
     }
     return .{ .p1 = p1, .p2 = p2 };
 }
-const RatingRangeSplits = struct { rr: [4]RatingRange };
+const RatingRangeSplits = [4]RatingRange;
 pub fn parse_workflow(allocator: std.mem.Allocator, workflow_map: WorkflowMap, rating_range: [4]RatingRange) ![]RatingRangeSplits { //Returns accepted ranges.
     var range_splits = try allocator.alloc(RatingRangeSplits, 1);
     errdefer allocator.free(range_splits);
-    range_splits[0] = .{ .rr = rating_range };
+    range_splits[0] = rating_range;
     var wf_states = try allocator.alloc(WorkflowState, 1); //To copy ranges' state when split.
     defer allocator.free(wf_states);
     wf_states[0] = .{ .wn = .{ 'i', 'n', 0 }, .wf_i = 0 };
@@ -113,33 +113,33 @@ pub fn parse_workflow(allocator: std.mem.Allocator, workflow_map: WorkflowMap, r
                     },
                     .instructions => |ins| {
                         const accept_rr = if (ins.s == .gt) RatingRange{ .min = ins.n + 1, .max = std.math.maxInt(IntT) } else RatingRange{ .min = 0, .max = ins.n - 1 };
-                        const splits = range_splits[chunk_i].rr[@intFromEnum(ins.t)].splits(accept_rr);
+                        const splits = range_splits[chunk_i][@intFromEnum(ins.t)].splits(accept_rr);
                         if (splits != null) {
                             if (splits.?.l) |sp_l| {
-                                var chunks_rej = range_splits[chunk_i].rr;
+                                var chunks_rej = range_splits[chunk_i];
                                 chunks_rej[@intFromEnum(ins.t)] = sp_l;
                                 if (chunk_len == range_splits.len) {
                                     range_splits = try allocator.realloc(range_splits, 2 * range_splits.len);
                                     wf_states = try allocator.realloc(wf_states, 2 * wf_states.len);
                                 }
-                                range_splits[chunk_len].rr = chunks_rej;
+                                range_splits[chunk_len] = chunks_rej;
                                 wf_states[chunk_len] = wf_states[chunk_i];
                                 wf_states[chunk_len].wf_i += 1;
                                 chunk_len += 1;
                             }
                             if (splits.?.u) |sp_u| {
-                                var chunks_rej = range_splits[chunk_i].rr;
+                                var chunks_rej = range_splits[chunk_i];
                                 chunks_rej[@intFromEnum(ins.t)] = sp_u;
                                 if (chunk_len == range_splits.len) {
                                     range_splits = try allocator.realloc(range_splits, 2 * range_splits.len);
                                     wf_states = try allocator.realloc(wf_states, 2 * wf_states.len);
                                 }
-                                range_splits[chunk_len].rr = chunks_rej;
+                                range_splits[chunk_len] = chunks_rej;
                                 wf_states[chunk_len] = wf_states[chunk_i];
                                 wf_states[chunk_len].wf_i += 1;
                                 chunk_len += 1;
                             }
-                            range_splits[chunk_i].rr[@intFromEnum(ins.t)] = splits.?.i;
+                            range_splits[chunk_i][@intFromEnum(ins.t)] = splits.?.i;
                             wf_states[chunk_i] = .{ .wn = ins.g };
                             break :goto_next_wf;
                         }
@@ -193,6 +193,6 @@ pub fn main() !void {
     defer if (gpa.deinit() == .leak) std.debug.print("Leak detected.\n", .{});
     const p = try do_puzzle(gpa.allocator());
     std.debug.print("{}\n", .{p});
-    //try std.testing.expectEqual(@as(IntT, 4380), p.p1);
-    //try std.testing.expectEqual(@as(IntT, 116606738659695), p.p2);
+    try std.testing.expectEqual(@as(IntT, 352052), p.p1);
+    try std.testing.expectEqual(@as(IntT, 116606738659695), p.p2);
 }
