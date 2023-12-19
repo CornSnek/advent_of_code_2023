@@ -67,6 +67,7 @@ pub fn do_puzzle(allocator: std.mem.Allocator) !struct { p1: IntT, p2: IntT } {
     var p1: IntT = 0;
     var p2: IntT = 0;
     const wf_result = try parse_workflow(allocator, workflow_map, .{ .{ .min = 1, .max = 4000 }, .{ .min = 1, .max = 4000 }, .{ .min = 1, .max = 4000 }, .{ .min = 1, .max = 4000 } });
+    defer allocator.free(wf_result);
     while (parse_line(input_file, &pos)) |line| {
         var line_pos: usize = 0;
         const xv = (try parse_number(line, &line_pos)) orelse return error.ExpectedNumber;
@@ -74,84 +75,66 @@ pub fn do_puzzle(allocator: std.mem.Allocator) !struct { p1: IntT, p2: IntT } {
         const av = (try parse_number(line, &line_pos)) orelse return error.ExpectedNumber;
         const sv = (try parse_number(line, &line_pos)) orelse return error.ExpectedNumber;
         for (wf_result) |rrs| {
-            if (rrs[0].contains(xv) and rrs[1].contains(mv) and rrs[2].contains(av) and rrs[3].contains(sv)) p1 += xv + mv + av + sv;
+            if (rrs.rr_arr[0].contains(xv) and rrs.rr_arr[1].contains(mv) and rrs.rr_arr[2].contains(av) and rrs.rr_arr[3].contains(sv)) p1 += xv + mv + av + sv;
         }
     }
-    defer allocator.free(wf_result);
     for (wf_result) |rrs| {
         var mult: IntT = 1;
-        for (rrs) |range| mult *= range.max - range.min + 1;
+        for (rrs.rr_arr) |range| mult *= range.max - range.min + 1;
         p2 += mult;
     }
     return .{ .p1 = p1, .p2 = p2 };
 }
-const RatingRangeSplits = [4]RatingRange;
+const RatingRangeSplits = struct { rr_arr: [4]RatingRange, wfs: WorkflowState };
 pub fn parse_workflow(allocator: std.mem.Allocator, workflow_map: WorkflowMap, rating_range: [4]RatingRange) ![]RatingRangeSplits { //Returns accepted ranges.
     var range_splits = try allocator.alloc(RatingRangeSplits, 1);
     errdefer allocator.free(range_splits);
-    range_splits[0] = rating_range;
-    var wf_states = try allocator.alloc(WorkflowState, 1); //To copy ranges' state when split.
-    defer allocator.free(wf_states);
-    wf_states[0] = .{ .wn = .{ 'i', 'n', 0 }, .wf_i = 0 };
-    var chunk_len: usize = 1;
-    var chunk_i: usize = 0;
-    next_chunk: while (chunk_i < chunk_len) {
+    range_splits[0] = .{ .rr_arr = rating_range, .wfs = .{ .wn = .{ 'i', 'n', 0 }, .wf_i = 0 } }; //wfs for sharing the previous state when splitting.
+    var rrs_len: usize = 1;
+    var rrs_i: usize = 0;
+    next_chunk: while (rrs_i < rrs_len) {
         while (true) {
-            const wf_arr: []Workflow = workflow_map.get(wf_states[chunk_i].wn) orelse return error.ExpectedDefinedWorkflow;
-            goto_next_wf: while (wf_states[chunk_i].wf_i < wf_arr.len) : (wf_states[chunk_i].wf_i += 1) {
-                switch (wf_arr[wf_states[chunk_i].wf_i]) {
+            const wf_arr: []Workflow = workflow_map.get(range_splits[rrs_i].wfs.wn) orelse return error.ExpectedDefinedWorkflow;
+            goto_next_wf: while (range_splits[rrs_i].wfs.wf_i < wf_arr.len) : (range_splits[rrs_i].wfs.wf_i += 1) {
+                switch (wf_arr[range_splits[rrs_i].wfs.wf_i]) {
                     .accept => {
-                        chunk_i += 1;
+                        rrs_i += 1;
                         continue :next_chunk;
                     },
                     .reject => {
-                        chunk_len -= 1; //Overwrite the rejected with the last in the array.
-                        range_splits[chunk_i] = range_splits[chunk_len];
-                        wf_states[chunk_i] = wf_states[chunk_len];
+                        rrs_len -= 1; //Overwrite the rejected with the last in the array.
+                        range_splits[rrs_i] = range_splits[rrs_len];
                         continue :next_chunk;
                     },
                     .instructions => |ins| {
                         const accept_rr = if (ins.s == .gt) RatingRange{ .min = ins.n + 1, .max = std.math.maxInt(IntT) } else RatingRange{ .min = 0, .max = ins.n - 1 };
-                        const splits = range_splits[chunk_i][@intFromEnum(ins.t)].splits(accept_rr);
+                        const splits = range_splits[rrs_i].rr_arr[@intFromEnum(ins.t)].splits(accept_rr);
                         if (splits != null) {
-                            if (splits.?.l) |sp_l| {
-                                var chunks_rej = range_splits[chunk_i];
-                                chunks_rej[@intFromEnum(ins.t)] = sp_l;
-                                if (chunk_len == range_splits.len) {
-                                    range_splits = try allocator.realloc(range_splits, 2 * range_splits.len);
-                                    wf_states = try allocator.realloc(wf_states, 2 * wf_states.len);
+                            inline for ([_][]const u8{ "l", "u" }) |field_str| {
+                                if (@field(splits.?, field_str)) |has_split| {
+                                    var chunks_rej = range_splits[rrs_i].rr_arr;
+                                    chunks_rej[@intFromEnum(ins.t)] = has_split;
+                                    if (rrs_len == range_splits.len) range_splits = try allocator.realloc(range_splits, 2 * range_splits.len);
+                                    range_splits[rrs_len].rr_arr = chunks_rej;
+                                    range_splits[rrs_len].wfs = range_splits[rrs_i].wfs;
+                                    range_splits[rrs_len].wfs.wf_i += 1;
+                                    rrs_len += 1;
                                 }
-                                range_splits[chunk_len] = chunks_rej;
-                                wf_states[chunk_len] = wf_states[chunk_i];
-                                wf_states[chunk_len].wf_i += 1;
-                                chunk_len += 1;
                             }
-                            if (splits.?.u) |sp_u| {
-                                var chunks_rej = range_splits[chunk_i];
-                                chunks_rej[@intFromEnum(ins.t)] = sp_u;
-                                if (chunk_len == range_splits.len) {
-                                    range_splits = try allocator.realloc(range_splits, 2 * range_splits.len);
-                                    wf_states = try allocator.realloc(wf_states, 2 * wf_states.len);
-                                }
-                                range_splits[chunk_len] = chunks_rej;
-                                wf_states[chunk_len] = wf_states[chunk_i];
-                                wf_states[chunk_len].wf_i += 1;
-                                chunk_len += 1;
-                            }
-                            range_splits[chunk_i][@intFromEnum(ins.t)] = splits.?.i;
-                            wf_states[chunk_i] = .{ .wn = ins.g };
+                            range_splits[rrs_i].rr_arr[@intFromEnum(ins.t)] = splits.?.i;
+                            range_splits[rrs_i].wfs = .{ .wn = ins.g };
                             break :goto_next_wf;
                         }
                     },
                     .goto => |goto_next_wf| {
-                        wf_states[chunk_i] = .{ .wn = goto_next_wf };
+                        range_splits[rrs_i].wfs = .{ .wn = goto_next_wf };
                         break :goto_next_wf;
                     },
                 }
             }
         }
     }
-    range_splits = try allocator.realloc(range_splits, chunk_len);
+    range_splits = try allocator.realloc(range_splits, rrs_len);
     return range_splits;
 }
 const RatingRange = struct {
