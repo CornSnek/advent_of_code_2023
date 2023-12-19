@@ -25,7 +25,7 @@ pub const Vec2D = struct {
         return self.x == other.x and self.y == other.y;
     }
 };
-inline fn get_elem(comptime bounds_check: bool, comptime ArrayT: anytype, array_t: ArrayT, TextWidth: usize, TextHeight: usize, vec: Vec2D) if (bounds_check) ?std.meta.Child(ArrayT) else std.meta.Child(ArrayT) {
+inline fn get_elem(comptime bounds_check: bool, array_t: anytype, TextWidth: usize, TextHeight: usize, vec: Vec2D) if (bounds_check) ?std.meta.Child(@TypeOf(array_t)) else std.meta.Child(@TypeOf(array_t)) {
     if (bounds_check) if (vec.x < 0 or vec.y < 0 or vec.x >= @as(isize, @intCast(TextWidth - 1)) or vec.y >= @as(isize, @intCast(TextHeight))) return null;
     return array_t[TextWidth * @as(usize, @intCast(vec.y)) + @as(usize, @intCast(vec.x))];
 }
@@ -112,7 +112,7 @@ pub fn calculate(tiles_pq: *TilesPQueue, tiles_visited: *TilesVisit, TextWidth: 
             const new_dir_step: IntT = if (tilevp.dir == nt.dir) tilevp.dir_step + 1 else 1;
             if (new_dir_step > max_repeat) break :next_tile_dir;
             const next_vector = Vec2D{ .x = tilevp.vec.x + nt.dv.x, .y = tilevp.vec.y + nt.dv.y };
-            const ch = get_elem(true, @TypeOf(input_file), input_file, TextWidth, TextHeight, next_vector) orelse break :next_tile_dir;
+            const ch = get_elem(true, input_file, TextWidth, TextHeight, next_vector) orelse break :next_tile_dir;
             const tile_cost: IntT = @intCast(ch - '0');
             const new_tile_properties = TileQueueProperties{ .total_cost = tile_from_pq.total_cost + tile_cost, .tvp = .{ .dir_step = new_dir_step, .dir = nt.dir, .vec = next_vector } };
             try tiles_pq.add(new_tile_properties);

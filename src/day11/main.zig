@@ -28,7 +28,7 @@ pub const Vec2D = struct {
         return self.x == other.x and self.y == other.y;
     }
 };
-inline fn get_elem(comptime bounds_check: bool, comptime ArrayT: anytype, array_t: ArrayT, TextWidth: usize, TextHeight: usize, vec: Vec2D) if (bounds_check) ?std.meta.Child(ArrayT) else std.meta.Child(ArrayT) {
+inline fn get_elem(comptime bounds_check: bool, array_t: anytype, TextWidth: usize, TextHeight: usize, vec: Vec2D) if (bounds_check) ?std.meta.Child(@TypeOf(array_t)) else std.meta.Child(@TypeOf(array_t)) {
     if (bounds_check) if (vec.x < 0 or vec.y < 0 or vec.x >= @as(isize, @intCast(TextWidth - 1)) or vec.y >= @as(isize, @intCast(TextHeight))) return null;
     return array_t[TextWidth * @as(usize, @intCast(vec.y)) + @as(usize, @intCast(vec.x))];
 }
@@ -62,7 +62,7 @@ pub fn do_puzzle(comptime expansion_p2: IntT, allocator: std.mem.Allocator) !str
     }
     for (0..TextWidth.? - 1) |x| {
         const column_all_periods = for (0..TextHeight) |y| {
-            if (get_elem(true, @TypeOf(input_file), input_file, TextWidth.?, TextHeight, .{ .x = @intCast(x), .y = @intCast(y) }) == '#')
+            if (get_elem(true, input_file, TextWidth.?, TextHeight, .{ .x = @intCast(x), .y = @intCast(y) }) == '#')
                 break false;
         } else true;
         if (column_all_periods) {

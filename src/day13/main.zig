@@ -33,7 +33,7 @@ pub fn parse_map(file_str: []const u8, pos: *usize) ?Map {
     return .{ .map = file_str[begin_pos..pos.*], .width = TextWidth.?, .height = TextHeight };
 }
 pub const Vec2D = struct { x: isize, y: isize };
-inline fn get_elem(comptime bounds_check: bool, comptime ArrayT: anytype, array_t: ArrayT, TextWidth: usize, TextHeight: usize, vec: Vec2D) if (bounds_check) ?std.meta.Child(ArrayT) else std.meta.Child(ArrayT) {
+inline fn get_elem(comptime bounds_check: bool, array_t: anytype, TextWidth: usize, TextHeight: usize, vec: Vec2D) if (bounds_check) ?std.meta.Child(@TypeOf(array_t)) else std.meta.Child(@TypeOf(array_t)) {
     if (bounds_check) if (vec.x < 0 or vec.y < 0 or vec.x >= @as(isize, @intCast(TextWidth - 1)) or vec.y >= @as(isize, @intCast(TextHeight))) return null;
     return array_t[TextWidth * @as(usize, @intCast(vec.y)) + @as(usize, @intCast(vec.x))];
 }
@@ -60,13 +60,13 @@ pub fn calculate(comptime rt: ReflectionType, map: Map, steps_p1: *IntT, steps_p
             }) {
                 var check_row: isize = 0;
                 while (check_row < map.height) : (check_row += 1) {
-                    var ch1 = get_elem(true, @TypeOf(map.map), map.map, @intCast(map.width), @intCast(map.height), .{ .x = col1, .y = check_row }) orelse {
+                    var ch1 = get_elem(true, map.map, @intCast(map.width), @intCast(map.height), .{ .x = col1, .y = check_row }) orelse {
                         if (exactly_one_mistake) {
                             steps_p2.* += @intCast(col + 1);
                         } else steps_p1.* += @intCast(col + 1);
                         continue :next_col;
                     };
-                    var ch2 = get_elem(true, @TypeOf(map.map), map.map, @intCast(map.width), @intCast(map.height), .{ .x = col2, .y = check_row }) orelse {
+                    var ch2 = get_elem(true, map.map, @intCast(map.width), @intCast(map.height), .{ .x = col2, .y = check_row }) orelse {
                         if (exactly_one_mistake) {
                             steps_p2.* += @intCast(col + 1);
                         } else steps_p1.* += @intCast(col + 1);
@@ -90,13 +90,13 @@ pub fn calculate(comptime rt: ReflectionType, map: Map, steps_p1: *IntT, steps_p
             }) {
                 var check_col: isize = 0;
                 while (check_col < map.width - 1) : (check_col += 1) {
-                    var ch1 = get_elem(true, @TypeOf(map.map), map.map, @intCast(map.width), @intCast(map.height), .{ .x = check_col, .y = row1 }) orelse {
+                    var ch1 = get_elem(true, map.map, @intCast(map.width), @intCast(map.height), .{ .x = check_col, .y = row1 }) orelse {
                         if (exactly_one_mistake) {
                             steps_p2.* += @as(IntT, @intCast(row + 1)) * 100;
                         } else steps_p1.* += @as(IntT, @intCast(row + 1)) * 100;
                         continue :next_row;
                     };
-                    var ch2 = get_elem(true, @TypeOf(map.map), map.map, @intCast(map.width), @intCast(map.height), .{ .x = check_col, .y = row2 }) orelse {
+                    var ch2 = get_elem(true, map.map, @intCast(map.width), @intCast(map.height), .{ .x = check_col, .y = row2 }) orelse {
                         if (exactly_one_mistake) {
                             steps_p2.* += @as(IntT, @intCast(row + 1)) * 100;
                         } else steps_p1.* += @as(IntT, @intCast(row + 1)) * 100;
