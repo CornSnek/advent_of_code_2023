@@ -66,18 +66,17 @@ pub fn do_puzzle(allocator: std.mem.Allocator) !struct { p1: IntT, p2: IntT } {
     }
     var p1: IntT = 0;
     var p2: IntT = 0;
+    const wf_result = try parse_workflow(allocator, workflow_map, .{ .{ .min = 1, .max = 4000 }, .{ .min = 1, .max = 4000 }, .{ .min = 1, .max = 4000 }, .{ .min = 1, .max = 4000 } });
     while (parse_line(input_file, &pos)) |line| {
         var line_pos: usize = 0;
         const xv = (try parse_number(line, &line_pos)) orelse return error.ExpectedNumber;
         const mv = (try parse_number(line, &line_pos)) orelse return error.ExpectedNumber;
         const av = (try parse_number(line, &line_pos)) orelse return error.ExpectedNumber;
         const sv = (try parse_number(line, &line_pos)) orelse return error.ExpectedNumber;
-        const range_p1 = [4]RatingRange{ .{ .min = xv, .max = xv }, .{ .min = mv, .max = mv }, .{ .min = av, .max = av }, .{ .min = sv, .max = sv } };
-        const wf_result_p1 = try parse_workflow(allocator, workflow_map, range_p1);
-        defer allocator.free(wf_result_p1);
-        if (wf_result_p1.len != 0) p1 += wf_result_p1[0][0].min + wf_result_p1[0][1].min + wf_result_p1[0][2].min + wf_result_p1[0][3].min;
+        for (wf_result) |rrs| {
+            if (rrs[0].contains(xv) and rrs[1].contains(mv) and rrs[2].contains(av) and rrs[3].contains(sv)) p1 += xv + mv + av + sv;
+        }
     }
-    const wf_result = try parse_workflow(allocator, workflow_map, .{ .{ .min = 1, .max = 4000 }, .{ .min = 1, .max = 4000 }, .{ .min = 1, .max = 4000 }, .{ .min = 1, .max = 4000 } });
     defer allocator.free(wf_result);
     for (wf_result) |rrs| {
         var mult: IntT = 1;
@@ -167,6 +166,9 @@ const RatingRange = struct {
             .l = if (intersect.min >= this_rr.min and intersect.min != 0 and this_rr.min <= intersect.min - 1) .{ .min = this_rr.min, .max = intersect.min - 1 } else null,
             .u = if (intersect.max <= this_rr.max and intersect.max != std.math.maxInt(IntT) and this_rr.max >= intersect.max + 1) .{ .min = intersect.max + 1, .max = this_rr.max } else null,
         } else null;
+    }
+    pub inline fn contains(self: RatingRange, point: IntT) bool {
+        return point >= self.min and point <= self.max;
     }
 };
 pub fn slice_as_wn(line: []const u8, line_pos: *usize) !WorkflowName {
